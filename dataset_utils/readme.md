@@ -1,6 +1,5 @@
 ## Folder structure overview
 
-Project root:
 - `run.sh` — runs the full pipeline end-to-end.
 - `canonicalization_run/` — sampling + canonicalization entrypoints and configs.
 - `rotation_run/` — rotation augmentation entrypoints and configs.
