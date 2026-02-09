@@ -1,7 +1,3 @@
-# CADEvolve
-
-CADEvolve is an evolution-based pipeline and dataset for generating complex, valid CadQuery programs, and it enables training a fine-tuned VLM that achieves state-of-the-art Image2CAD results on DeepCAD, Fusion 360, and MCB.
-
 ## Folder structure overview
 
 Project root:
