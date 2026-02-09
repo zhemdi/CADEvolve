@@ -1,0 +1,53 @@
+run:
+  seed: 42
+  resume_from_checkpoint: false
+
+logging:
+  log_path: logs/cadevolve 
+
+paths:
+  output_dir: work_dirs/cadevolve
+
+model:
+  model_id: Qwen/Qwen2-VL-2B
+  torch_dtype: bfloat16
+  attn_implementation: flash_attention_2
+  trust_remote_code: true
+
+processor:
+  trust_remote_code: true
+  resized_width: 476
+  resized_height: 952
+  padding_side: left
+
+dataset:
+  max_script_len: null
+  apply_augs: false
+  language: cadevolve
+
+data:
+  items_pkl: ../data/train_set/pairs.pkl
+  val_size: 60
+
+training:
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 5
+  gradient_accumulation_steps: 16
+  dataloader_num_workers: 0
+  learning_rate: 0.0002
+  weight_decay: 0.01
+  lr_scheduler_type: cosine
+  num_train_epochs: 10
+  warmup_steps: 1000
+  logging_strategy: steps
+  logging_steps: 20
+  save_strategy: steps
+  save_steps: 800
+  save_total_limit: 3
+  eval_strategy: steps
+  eval_steps: 100
+  load_best_model_at_end: true
+  bf16: true
+  dataloader_drop_last: true
+  remove_unused_columns: false
+  report_to: none

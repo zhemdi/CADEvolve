@@ -1,0 +1,7 @@
+data_path: canonicalized_flat
+output_path: rotated
+logs_path: logs/rotation.log
+
+workers: 16
+zero_angle: False
+make_stl: True

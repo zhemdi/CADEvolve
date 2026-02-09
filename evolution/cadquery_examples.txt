@@ -1,0 +1,897 @@
+
+Simple Rectangular Plate
+
+Just about the simplest possible example, a rectangular box
+
+result = cadquery.Workplane("front").box(2.0, 2.0, 0.5)
+build_object(result)
+
+
+
+⸻
+
+Plate with Hole
+
+A rectangular box, but with a hole added.
+">Z" selects the top-most face of the resulting box. The hole is located in the center because the default origin of a working plane is at the center of the face. The default hole depth is through the entire part.
+
+# The dimensions of the box. These can be modified rather than changing the
+# object's code directly.
+length = 80.0
+height = 60.0
+thickness = 10.0
+center_hole_dia = 22.0
+
+# Create a box based on the dimensions above and add a 22mm center hole
+result = cq.Workplane("XY").box(length, height, thickness) \
+    .faces(">Z").workplane().hole(center_hole_dia)
+
+build_object(result)
+
+
+⸻
+
+An extruded prismatic solid
+
+Build a prismatic solid using extrusion. After a drawing operation, the center of the previous object is placed on the stack, and is the reference for the next operation. So in this case, the rect() is drawn centered on the previously drawn circle. By default, rectangles and circles are centered around the previous working point.
+
+result = cq.Workplane("front").circle(2.0).rect(0.5, 0.75).extrude(0.5)
+build_object(result)
+
+
+⸻
+
+Building Profiles using lines and arcs
+
+Sometimes you need to build complex profiles using lines and arcs. This example builds a prismatic solid from 2-D operations. 2-D operations maintain a current point, which is initially at the origin. Use close() to finish a closed curve.
+
+result = cq.Workplane("front")\
+    .lineTo(2.0, 0)\
+    .lineTo(2.0, 1.0)\
+    .threePointArc((1.0, 1.5), (0.0, 1.0))\
+    .close()\
+    .extrude(0.25)
+build_object(result)
+
+
+
+⸻
+
+Moving The Current working point
+
+In this example, a closed profile is required, with some interior features as well. A new work plane center can be established at any point.
+
+result = cq.Workplane("front").circle(3.0)  # current point is the center of the circle, at (0,0)
+result = result.center(1.5, 0.0).rect(0.5, 0.5)  # new work center is (1.5, 0.0)
+result = result.center(-1.5, 1.5).circle(0.25)  # new work center is (0.0, 1.5).
+# the new center is specified relative to the previous center, not global coordinates!
+result = result.extrude(0.25)
+build_object(result)
+
+
+⸻
+
+Using Point Lists
+
+Sometimes you need to create a number of features at various locations, and using Workplane.center() is too cumbersome. You can use a list of points to construct multiple objects at once. Most construction methods, like Workplane.circle() and Workplane.rect(), will operate on multiple points if they are on the stack.
+
+r = cq.Workplane("front").circle(2.0)                       # make base
+r = r.pushPoints([(1.5, 0), (0, 1.5), (-1.5, 0), (0, -1.5)])  # now four points are on the stack
+r = r.circle(0.25)                                          # circle will operate on all four points
+result = r.extrude(0.125)                                   # make prism
+build_object(result)
+
+
+⸻
+
+Polygons
+
+You can create polygons for each stack point if you would like. Useful in 3D printers whose firmware does not correct for small hole sizes.
+
+result = cq.Workplane("front")\
+    .box(3.0, 4.0, 0.25)\
+    .pushPoints([(0, 0.75), (0, -0.75)])\
+    .polygon(6, 1.0)\
+    .cutThruAll()
+build_object(result)
+
+
+
+⸻
+
+Polylines
+
+Workplane.polyline() allows creating a shape from a large number of chained points connected by lines. This example uses a polyline to create one half of an I-beam shape, which is mirrored to create the final profile.
+
+(L, H, W, t) = (100.0, 20.0, 20.0, 1.0)
+pts = [
+    (0, H/2.0),
+    (W/2.0, H/2.0),
+    (W/2.0, (H/2.0 - t)),
+    (t/2.0, (H/2.0 - t)),
+    (t/2.0, (t - H/2.0)),
+    (W/2.0, (t - H/2.0)),
+    (W/2.0, -H/2.0),
+    (0, -H/2.0)
+]
+result = cq.Workplane("front")\
+    .polyline(pts)\
+    .mirrorY()\
+    .extrude(L)
+build_object(result)
+
+
+
+⸻
+
+Defining an Edge with a Spline
+
+This example defines a side using a spline curve through a collection of points. Useful when you have an edge that needs a complex profile.
+
+s = cq.Workplane("XY")
+sPnts = [
+    (2.75, 1.5),
+    (2.5, 1.75),
+    (2.0, 1.5),
+    (1.5, 1.0),
+    (1.0, 1.25),
+    (0.5, 1.0),
+    (0, 1.0)
+]
+r = s.lineTo(3.0, 0)\
+     .lineTo(3.0, 1.0)\
+     .spline(sPnts)\
+     .close()
+result = r.extrude(0.5)
+build_object(result)
+
+
+⸻
+
+Mirroring Symmetric Geometry
+
+You can mirror 2-D geometry when your shape is symmetric. In this example we also introduce horizontal and vertical lines.
+
+r = cq.Workplane("front")\
+    .hLine(1.0)                    # 1.0 is the distance, not coordinate
+r = r.vLine(0.5).hLine(-0.25).vLine(-0.25).hLineTo(0.0)  # hLineTo allows using xCoordinate not distance
+result = r.mirrorY().extrude(0.25)                     # mirror the geometry and extrude
+build_object(result)
+
+
+⸻
+
+Creating Workplanes on Faces
+
+This example shows how to locate a new workplane on the face of a previously created feature.
+
+Note
+Using workplanes in this way is a key feature of CadQuery. Unlike typical 3D scripting languages, using work planes frees you from tracking the position of various features in variables, and allows the model to adjust itself without removing redundant dimensions.
+
+The Workplane.faces() method allows you to select the faces of a resulting solid. It accepts a selector string or object, that allows you to target a single face, and make a workplane oriented on that face. Keep in mind that the origin of new workplanes is located at the center of a face by default.
+
+result = cq.Workplane("front").box(2, 3, 0.5)            # make a basic prism
+result = result.faces(">Z").workplane().hole(0.5)       # find the top-most face and make a hole
+build_object(result)
+
+
+⸻
+
+Locating a Workplane on a vertex
+
+Normally, the Workplane.workplane() method requires a face to be selected. But if a vertex is selected immediately after a face, Workplane.workplane() will locate the workplane on the face, with the origin at the vertex instead of at the center of the face. The example also introduces Workplane.cutThruAll(), which makes a cut through the entire part, no matter how deep the part is.
+
+result = cq.Workplane("front").box(3, 2, 0.5)                 # make a basic prism
+result = result.faces(">Z").vertices("<XY").workplane()      # select the lower left vertex and make a workplane
+result = result.circle(1.0).cutThruAll()                     # cut the corner out
+build_object(result)
+
+
+
+⸻
+
+Offset Workplanes
+
+Workplanes do not have to lie exactly on a face. When you make a workplane, you can define it at an offset from an existing face. This example uses an offset workplane to make a compound object, which is perfectly valid!
+
+result = cq.Workplane("front").box(3, 2, 0.5)
+result = result.faces("<X").workplane(offset=0.75)  # workplane is offset from the object surface
+result = result.circle(1.0).extrude(0.5)            # disc
+build_object(result)
+
+
+
+⸻
+
+Rotated Workplanes
+
+You can create a rotated workplane by specifying angles of rotation relative to another workplane.
+
+result = cq.Workplane("front").box(4.0, 4.0, 0.25).faces(">Z").workplane()  \
+     .transformed(offset=cq.Vector(0, -1.5, 1.0), rotate=cq.Vector(60, 0, 0)) \
+     .rect(1.5, 1.5, forConstruction=True).vertices().hole(0.25)
+build_object(result)
+
+
+
+⸻
+
+Using construction Geometry
+
+You can draw shapes to use the vertices as points to locate other features. Features that are used to locate other features, rather than to create them, are called Construction Geometry. In the example below, a rectangle is drawn, and its vertices are used to locate a set of holes.
+
+result = cq.Workplane("front").box(2, 2, 0.5).faces(">Z").workplane() \
+    .rect(1.5, 1.5, forConstruction=True).vertices().hole(0.125)
+build_object(result)
+
+Api References
+	•	Workplane.rect() (forConstruction=True)
+	•	Workplane.hole()
+	•	Workplane.box()
+
+⸻
+
+Shelling To Create Thin features
+
+Shelling converts a solid object into a shell of uniform thickness. To shell an object, one or more faces are removed, and then the inside of the solid is ‘hollowed out’ to make the shell.
+
+result = cq.Workplane("front").box(2, 2, 2).faces("+Z").shell(0.05)
+build_object(result)
+
+
+⸻
+
+Making Lofts
+
+A loft is a solid swept through a set of wires. This example creates a lofted section between a rectangle and a circular section.
+
+result = cq.Workplane("front").box(4.0, 4.0, 0.25).faces(">Z").circle(1.5) \
+    .workplane(offset=3.0).rect(0.75, 0.5).loft(combine=True)
+build_object(result)
+
+
+
+⸻
+
+Making Counter-bored and counter-sunk holes
+
+Counterbored and countersunk holes are so common that CadQuery creates macros to create them in a single step. Similar to Workplane.hole(), these functions operate on a list of points as well as a single point.
+
+result = cq.Workplane(cq.Plane.XY()).box(4, 2, 0.5).faces(">Z").workplane().rect(3.5, 1.5, forConstruction=True) \
+    .vertices().cboreHole(0.125, 0.25, 0.125, depth=None)
+build_object(result)
+
+
+
+⸻
+
+Rounding Corners with Fillet
+
+Filleting is done by selecting the edges of a solid, and using the fillet function. Here we fillet all of the edges of a simple plate.
+
+result = cq.Workplane("XY").box(3, 3, 0.5).edges("|Z").fillet(0.125)
+build_object(result)
+
+
+
+⸻
+
+A Parametric Bearing Pillow Block
+
+Combining a few basic functions, it’s possible to make a very good parametric bearing pillow block, with just a few lines of code.
+
+(length, height, bearing_diam, thickness, padding) = (30.0, 40.0, 22.0, 10.0, 8.0)
+result = cq.Workplane("XY").box(length, height, thickness)\
+    .faces(">Z").workplane().hole(bearing_diam)\
+    .faces(">Z").workplane()\
+    .rect(length - padding, height - padding, forConstruction=True)\
+    .vertices().cboreHole(2.4, 4.4, 2.1)
+build_object(result)
+
+
+⸻
+
+Splitting an Object
+
+You can split an object using a workplane, and retain either or both halves.
+
+c = cq.Workplane("XY").box(1, 1, 1).faces(">Z").workplane().circle(0.25).cutThruAll()
+# now cut it in half sideways
+result = c.faces(">Y").workplane(-0.5).split(keepTop=True)
+build_object(result)
+
+
+
+⸻
+
+The Classic OCC Bottle
+
+CadQuery is based on the OpenCascade.org (OCC) modeling Kernel. Those who are familiar with OCC know about the famous ‘bottle’ example.
+
+(L, w, t) = (20.0, 6.0, 3.0)
+s = cq.Workplane("XY")
+# draw half the profile of the bottle and extrude it
+p = s.center(-L/2.0, 0).vLine(w/2.0)\
+    .threePointArc((L/2.0, w/2.0 + t), (L, w/2.0)).vLine(-w/2.0)\
+    .mirrorX().extrude(30.0, True)
+# make the neck
+p.faces(">Z").workplane().circle(3.0).extrude(2.0, True)
+# make a shell
+result = p.faces(">Z").shell(0.3)
+build_object(result)
+
+
+⸻
+
+A Parametric Enclosure
+
+# parameter definitions
+p_outerWidth = 100.0  # Outer width of box enclosure
+p_outerLength = 150.0  # Outer length of box enclosure
+p_outerHeight = 50.0  # Outer height of box enclosure
+
+p_thickness = 3.0  # Thickness of the box walls
+p_sideRadius = 10.0  # Radius for the curves around the sides of the box
+p_topAndBottomRadius = (
+    2.0  # Radius for the curves on the top and bottom edges of the box
+)
+
+p_screwpostInset = 12.0  # How far in from the edges the screw posts should be place.
+p_screwpostID = 4.0  # Inner Diameter of the screw post holes, should be roughly screw diameter not including threads
+p_screwpostOD = 10.0  # Outer Diameter of the screw posts.\nDetermines overall thickness of the posts
+
+p_boreDiameter = 8.0  # Diameter of the counterbore hole, if any
+p_boreDepth = 1.0  # Depth of the counterbore hole, if
+p_countersinkDiameter = 0.0  # Outer diameter of countersink. Should roughly match the outer diameter of the screw head
+p_countersinkAngle = 90.0  # Countersink angle (complete angle between opposite sides, not from center to one side)
+p_flipLid = True  # Whether to place the lid with the top facing down or not.
+p_lipHeight = 1.0  # Height of lip on the underside of the lid.\nSits inside the box body for a snug fit.
+
+# outer shell
+oshell = (
+    cq.Workplane("XY")
+    .rect(p_outerWidth, p_outerLength)
+    .extrude(p_outerHeight + p_lipHeight)
+)
+
+# weird geometry happens if we make the fillets in the wrong order
+if p_sideRadius > p_topAndBottomRadius:
+    oshell = oshell.edges("|Z").fillet(p_sideRadius)
+    oshell = oshell.edges("#Z").fillet(p_topAndBottomRadius)
+else:
+    oshell = oshell.edges("#Z").fillet(p_topAndBottomRadius)
+    oshell = oshell.edges("|Z").fillet(p_sideRadius)
+
+# inner shell
+ishell = (
+    oshell.faces("<Z")
+    .workplane(p_thickness, True)
+    .rect((p_outerWidth - 2.0 * p_thickness), (p_outerLength - 2.0 * p_thickness))
+    .extrude(
+        (p_outerHeight - 2.0 * p_thickness), False
+    )  # set combine false to produce just the new boss
+)
+ishell = ishell.edges("|Z").fillet(p_sideRadius - p_thickness)
+
+# make the box outer box
+box = oshell.cut(ishell)
+
+# make the screw posts
+POSTWIDTH = p_outerWidth - 2.0 * p_screwpostInset
+POSTLENGTH = p_outerLength - 2.0 * p_screwpostInset
+
+box = (
+    box.faces(">Z")
+    .workplane(-p_thickness)
+    .rect(POSTWIDTH, POSTLENGTH, forConstruction=True)
+    .vertices()
+    .circle(p_screwpostOD / 2.0)
+    .circle(p_screwpostID / 2.0)
+    .extrude(-1.0 * (p_outerHeight + p_lipHeight - p_thickness), True)
+)
+
+# split lid into top and bottom parts
+(lid, bottom) = (
+    box.faces(">Z")
+    .workplane(-p_thickness - p_lipHeight)
+    .split(keepTop=True, keepBottom=True)
+    .all()
+)  # splits into two solids
+
+# translate the lid, and subtract the bottom from it to produce the lid inset
+lowerLid = lid.translate((0, 0, -p_lipHeight))
+cutlip = lowerLid.cut(bottom).translate(
+    (p_outerWidth + p_thickness, 0, p_thickness - p_outerHeight + p_lipHeight)
+)
+
+# compute centers for screw holes
+topOfLidCenters = (
+    cutlip.faces(">Z")
+    .workplane(centerOption="CenterOfMass")
+    .rect(POSTWIDTH, POSTLENGTH, forConstruction=True)
+    .vertices()
+)
+
+# add holes of the desired type
+if p_boreDiameter > 0 and p_boreDepth > 0:
+    topOfLid = topOfLidCenters.cboreHole(
+        p_screwpostID, p_boreDiameter, p_boreDepth, 2.0 * p_thickness
+    )
+elif p_countersinkDiameter > 0 and p_countersinkAngle > 0:
+    topOfLid = topOfLidCenters.cskHole(
+        p_screwpostID, p_countersinkDiameter, p_countersinkAngle, 2.0 * p_thickness
+    )
+else:
+    topOfLid = topOfLidCenters.hole(p_screwpostID, 2.0 * p_thickness)
+
+# flip lid upside down if desired
+if p_flipLid:
+    topOfLid = topOfLid.rotateAboutCenter((1, 0, 0), 180)
+
+# return the combined result
+result = topOfLid.union(bottom)
+
+⸻
+
+Lego Brick
+
+This script will produce any size regular rectangular Lego™ brick. Its only tricky part is the logic regarding the underside of the brick.
+
+#####
+# Inputs
+######
+lbumps = 6  # number of bumps long
+wbumps = 2  # number of bumps wide
+thin = True  # True for thin, False for thick
+
+#
+# Lego Brick Constants-- these make a Lego brick a Lego :)
+#
+pitch = 8.0
+clearance = 0.1
+bumpDiam = 4.8
+bumpHeight = 1.8
+if thin:
+    height = 3.2
+else:
+    height = 9.6
+
+t = (pitch - (2 * clearance) - bumpDiam) / 2.0
+postDiam = pitch - t  # works out to 6.5
+total_length = lbumps * pitch - 2.0 * clearance
+total_width = wbumps * pitch - 2.0 * clearance
+
+# make the base
+s = cq.Workplane("XY").box(total_length, total_width, height)
+
+# shell inwards not outwards
+s = s.faces("<Z").shell(-1.0 * t)
+
+# make the bumps on the top
+s = (
+    s.faces(">Z")
+    .workplane()
+    .rarray(pitch, pitch, lbumps, wbumps, True)
+    .circle(bumpDiam / 2.0)
+    .extrude(bumpHeight)
+)
+
+# add posts on the bottom. posts are different diameter depending on geometry
+# solid studs for 1 bump, tubes for multiple, none for 1x1
+tmp = s.faces("<Z").workplane(invert=True)
+
+if lbumps > 1 and wbumps > 1:
+    tmp = (
+        tmp.rarray(pitch, pitch, lbumps - 1, wbumps - 1, center=True)
+        .circle(postDiam / 2.0)
+        .circle(bumpDiam / 2.0)
+        .extrude(height - t)
+    )
+elif lbumps > 1:
+    tmp = (
+        tmp.rarray(pitch, pitch, lbumps - 1, 1, center=True)
+        .circle(t)
+        .extrude(height - t)
+    )
+elif wbumps > 1:
+    tmp = (
+        tmp.rarray(pitch, pitch, 1, wbumps - 1, center=True)
+        .circle(t)
+        .extrude(height - t)
+    )
+else:
+    tmp = s
+
+⸻
+
+Braille Example
+
+from collections import namedtuple
+
+
+# text_lines is a list of text lines.
+# Braille (converted with braille-converter:
+# https://github.com/jpaugh/braille-converter.git).
+text_lines = ["⠠ ⠋ ⠗ ⠑ ⠑ ⠠ ⠉ ⠠ ⠁ ⠠ ⠙"]
+# See http://www.tiresias.org/research/reports/braille_cell.htm for examples
+# of braille cell geometry.
+horizontal_interdot = 2.5
+vertical_interdot = 2.5
+horizontal_intercell = 6
+vertical_interline = 10
+dot_height = 0.5
+dot_diameter = 1.3
+
+base_thickness = 1.5
+
+# End of configuration.
+BrailleCellGeometry = namedtuple(
+    "BrailleCellGeometry",
+    (
+        "horizontal_interdot",
+        "vertical_interdot",
+        "intercell",
+        "interline",
+        "dot_height",
+        "dot_diameter",
+    ),
+)
+
+
+class Point(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, other):
+        return Point(self.x + other.x, self.y + other.y)
+
+    def __len__(self):
+        return 2
+
+    def __getitem__(self, index):
+        return (self.x, self.y)[index]
+
+    def __str__(self):
+        return "({}, {})".format(self.x, self.y)
+
+
+def brailleToPoints(text, cell_geometry):
+    # Unicode bit pattern (cf. https://en.wikipedia.org/wiki/Braille_Patterns).
+    mask1 = 0b00000001
+    mask2 = 0b00000010
+    mask3 = 0b00000100
+    mask4 = 0b00001000
+    mask5 = 0b00010000
+    mask6 = 0b00100000
+    mask7 = 0b01000000
+    mask8 = 0b10000000
+    masks = (mask1, mask2, mask3, mask4, mask5, mask6, mask7, mask8)
+
+    # Corresponding dot position
+    w = cell_geometry.horizontal_interdot
+    h = cell_geometry.vertical_interdot
+    pos1 = Point(0, 2 * h)
+    pos2 = Point(0, h)
+    pos3 = Point(0, 0)
+    pos4 = Point(w, 2 * h)
+    pos5 = Point(w, h)
+    pos6 = Point(w, 0)
+    pos7 = Point(0, -h)
+    pos8 = Point(w, -h)
+    pos = (pos1, pos2, pos3, pos4, pos5, pos6, pos7, pos8)
+
+    # Braille blank pattern (u'\u2800').
+    blank = "⠀"
+    points = []
+    # Position of dot1 along the x-axis (horizontal).
+    character_origin = 0
+    for c in text:
+        for m, p in zip(masks, pos):
+            delta_to_blank = ord(c) - ord(blank)
+            if m & delta_to_blank:
+                points.append(p + Point(character_origin, 0))
+        character_origin += cell_geometry.intercell
+    return points
+
+
+def get_plate_height(text_lines, cell_geometry):
+    # cell_geometry.vertical_interdot is also used as space between base
+    # borders and characters.
+    return (
+        2 * cell_geometry.vertical_interdot
+        + 2 * cell_geometry.vertical_interdot
+        + (len(text_lines) - 1) * cell_geometry.interline
+    )
+
+
+def get_plate_width(text_lines, cell_geometry):
+    # cell_geometry.horizontal_interdot is also used as space between base
+    # borders and characters.
+    max_len = max([len(t) for t in text_lines])
+    return (
+        2 * cell_geometry.horizontal_interdot
+        + cell_geometry.horizontal_interdot
+        + (max_len - 1) * cell_geometry.intercell
+    )
+
+
+def get_cylinder_radius(cell_geometry):
+    """Return the radius the cylinder should have
+    The cylinder have the same radius as the half-sphere make the dots (the
+    hidden and the shown part of the dots).
+    The radius is such that the spherical cap with diameter
+    cell_geometry.dot_diameter has a height of cell_geometry.dot_height.
+    """
+    h = cell_geometry.dot_height
+    r = cell_geometry.dot_diameter / 2
+    return (r**2 + h**2) / 2 / h
+
+
+def get_base_plate_thickness(plate_thickness, cell_geometry):
+    """Return the height on which the half spheres will sit"""
+    return (
+        plate_thickness + get_cylinder_radius(cell_geometry) - cell_geometry.dot_height
+    )
+
+
+def make_base(text_lines, cell_geometry, plate_thickness):
+    base_width = get_plate_width(text_lines, cell_geometry)
+    base_height = get_plate_height(text_lines, cell_geometry)
+    base_thickness = get_base_plate_thickness(plate_thickness, cell_geometry)
+    base = cq.Workplane("XY").box(
+        base_width, base_height, base_thickness, centered=False
+    )
+    return base
+
+
+def make_embossed_plate(text_lines, cell_geometry):
+    """Make an embossed plate with dots as spherical caps
+    Method:
+        - make a thin plate on which sit cylinders
+        - fillet the upper edge of the cylinders so to get pseudo half-spheres
+        - make the union with a thicker plate so that only the sphere caps stay
+          "visible".
+    """
+    base = make_base(text_lines, cell_geometry, base_thickness)
+
+    dot_pos = []
+    base_width = get_plate_width(text_lines, cell_geometry)
+    base_height = get_plate_height(text_lines, cell_geometry)
+    y = base_height - 3 * cell_geometry.vertical_interdot
+    line_start_pos = Point(cell_geometry.horizontal_interdot, y)
+    for text in text_lines:
+        dots = brailleToPoints(text, cell_geometry)
+        dots = [p + line_start_pos for p in dots]
+        dot_pos += dots
+        line_start_pos += Point(0, -cell_geometry.interline)
+
+    r = get_cylinder_radius(cell_geometry)
+    base = (
+        base.faces(">Z")
+        .vertices("<XY")
+        .workplane()
+        .pushPoints(dot_pos)
+        .circle(r)
+        .extrude(r)
+    )
+    # Make a fillet almost the same radius to get a pseudo spherical cap.
+    base = base.faces(">Z").edges().fillet(r - 0.001)
+    hidding_box = cq.Workplane("XY").box(
+        base_width, base_height, base_thickness, centered=False
+    )
+    result = hidding_box.union(base)
+    return result
+
+
+_cell_geometry = BrailleCellGeometry(
+    horizontal_interdot,
+    vertical_interdot,
+    horizontal_intercell,
+    vertical_interline,
+    dot_height,
+    dot_diameter,
+)
+
+if base_thickness < get_cylinder_radius(_cell_geometry):
+    raise ValueError("Base thickness should be at least {}".format(dot_height))
+
+result = make_embossed_plate(text_lines, _cell_geometry)
+
+⸻
+
+Panel With Various Connector Holes
+
+# The dimensions of the model. These can be modified rather than changing the
+# object's code directly.
+width = 400
+height = 500
+thickness = 2
+
+# Create a plate with two polygons cut through it
+result = cq.Workplane("front").box(width, height, thickness)
+
+h_sep = 60
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(157, 210 - idx * h_sep)
+        .moveTo(-23.5, 0)
+        .circle(1.6)
+        .moveTo(23.5, 0)
+        .circle(1.6)
+        .moveTo(-17.038896, -5.7)
+        .threePointArc((-19.44306, -4.70416), (-20.438896, -2.3))
+        .lineTo(-21.25, 2.3)
+        .threePointArc((-20.25416, 4.70416), (-17.85, 5.7))
+        .lineTo(17.85, 5.7)
+        .threePointArc((20.25416, 4.70416), (21.25, 2.3))
+        .lineTo(20.438896, -2.3)
+        .threePointArc((19.44306, -4.70416), (17.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(157, -30 - idx * h_sep)
+        .moveTo(-16.65, 0)
+        .circle(1.6)
+        .moveTo(16.65, 0)
+        .circle(1.6)
+        .moveTo(-10.1889, -5.7)
+        .threePointArc((-12.59306, -4.70416), (-13.5889, -2.3))
+        .lineTo(-14.4, 2.3)
+        .threePointArc((-13.40416, 4.70416), (-11, 5.7))
+        .lineTo(11, 5.7)
+        .threePointArc((13.40416, 4.70416), (14.4, 2.3))
+        .lineTo(13.5889, -2.3)
+        .threePointArc((12.59306, -4.70416), (10.1889, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+h_sep4DB9 = 30
+for idx in range(8):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(91, 225 - idx * h_sep4DB9)
+        .moveTo(-12.5, 0)
+        .circle(1.6)
+        .moveTo(12.5, 0)
+        .circle(1.6)
+        .moveTo(-6.038896, -5.7)
+        .threePointArc((-8.44306, -4.70416), (-9.438896, -2.3))
+        .lineTo(-10.25, 2.3)
+        .threePointArc((-9.25416, 4.70416), (-6.85, 5.7))
+        .lineTo(6.85, 5.7)
+        .threePointArc((9.25416, 4.70416), (10.25, 2.3))
+        .lineTo(9.438896, -2.3)
+        .threePointArc((8.44306, -4.70416), (6.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(25, 210 - idx * h_sep)
+        .moveTo(-23.5, 0)
+        .circle(1.6)
+        .moveTo(23.5, 0)
+        .circle(1.6)
+        .moveTo(-17.038896, -5.7)
+        .threePointArc((-19.44306, -4.70416), (-20.438896, -2.3))
+        .lineTo(-21.25, 2.3)
+        .threePointArc((-20.25416, 4.70416), (-17.85, 5.7))
+        .lineTo(17.85, 5.7)
+        .threePointArc((20.25416, 4.70416), (21.25, 2.3))
+        .lineTo(20.438896, -2.3)
+        .threePointArc((19.44306, -4.70416), (17.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(25, -30 - idx * h_sep)
+        .moveTo(-16.65, 0)
+        .circle(1.6)
+        .moveTo(16.65, 0)
+        .circle(1.6)
+        .moveTo(-10.1889, -5.7)
+        .threePointArc((-12.59306, -4.70416), (-13.5889, -2.3))
+        .lineTo(-14.4, 2.3)
+        .threePointArc((-13.40416, 4.70416), (-11, 5.7))
+        .lineTo(11, 5.7)
+        .threePointArc((13.40416, 4.70416), (14.4, 2.3))
+        .lineTo(13.5889, -2.3)
+        .threePointArc((12.59306, -4.70416), (10.1889, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(8):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(-41, 225 - idx * h_sep4DB9)
+        .moveTo(-12.5, 0)
+        .circle(1.6)
+        .moveTo(12.5, 0)
+        .circle(1.6)
+        .moveTo(-6.038896, -5.7)
+        .threePointArc((-8.44306, -4.70416), (-9.438896, -2.3))
+        .lineTo(-10.25, 2.3)
+        .threePointArc((-9.25416, 4.70416), (-6.85, 5.7))
+        .lineTo(6.85, 5.7)
+        .threePointArc((9.25416, 4.70416), (10.25, 2.3))
+        .lineTo(9.438896, -2.3)
+        .threePointArc((8.44306, -4.70416), (6.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(-107, 210 - idx * h_sep)
+        .moveTo(-23.5, 0)
+        .circle(1.6)
+        .moveTo(23.5, 0)
+        .circle(1.6)
+        .moveTo(-17.038896, -5.7)
+        .threePointArc((-19.44306, -4.70416), (-20.438896, -2.3))
+        .lineTo(-21.25, 2.3)
+        .threePointArc((-20.25416, 4.70416), (-17.85, 5.7))
+        .lineTo(17.85, 5.7)
+        .threePointArc((20.25416, 4.70416), (21.25, 2.3))
+        .lineTo(20.438896, -2.3)
+        .threePointArc((19.44306, -4.70416), (17.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(-107, -30 - idx * h_sep)
+        .circle(14)
+        .rect(24.7487, 24.7487, forConstruction=True)
+        .vertices()
+        .hole(3.2)
+        .cutThruAll()
+    )
+
+for idx in range(8):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(-173, 225 - idx * h_sep4DB9)
+        .moveTo(-12.5, 0)
+        .circle(1.6)
+        .moveTo(12.5, 0)
+        .circle(1.6)
+        .moveTo(-6.038896, -5.7)
+        .threePointArc((-8.44306, -4.70416), (-9.438896, -2.3))
+        .lineTo(-10.25, 2.3)
+        .threePointArc((-9.25416, 4.70416), (-6.85, 5.7))
+        .lineTo(6.85, 5.7)
+        .threePointArc((9.25416, 4.70416), (10.25, 2.3))
+        .lineTo(9.438896, -2.3)
+        .threePointArc((8.44306, -4.70416), (6.038896, -5.7))
+        .close()
+        .cutThruAll()
+    )
+
+for idx in range(4):
+    result = (
+        result.workplane(offset=1, centerOption="CenterOfBoundBox")
+        .center(-173, -30 - idx * h_sep)
+        .moveTo(-2.9176, -5.3)
+        .threePointArc((-6.05, 0), (-2.9176, 5.3))
+        .lineTo(2.9176, 5.3)
+        .threePointArc((6.05, 0), (2.9176, -5.3))
+        .close()
+        .cutThruAll()
+    )

@@ -1,0 +1,6 @@
+[
+  {
+    "name": "cone_revolve",
+    "code": "def cone_revolve(R=10, H=20):\n    return (cq.Workplane('XZ')\n            .moveTo(0, 0)\n            .lineTo(0, H)\n            .lineTo(R, 0)\n            .close()\n            .revolve(360) )"
+  }
+]

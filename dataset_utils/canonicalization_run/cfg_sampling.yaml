@@ -1,0 +1,11 @@
+code_db: ../data/database_toy_example.json
+log_path: logs/sampling.log
+save_dir: sampled
+
+num_samples: 10
+
+n_workers: 16
+task_timeout: 30
+
+start_method: forkserver
+only_missing: true
