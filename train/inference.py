@@ -6,7 +6,6 @@ Inference for Qwen2-VL fine-tuned on CadQuery STL renders.
 - Takes a folder with .stl files.
 - Renders each STL with the same Plotter used in training (visualization_iso).
 - Feeds the render via Qwen chat template and extracts the assistant's code.
-- Writes one output per STL (either raw predicted code, or wrapped as runnable DSL).
 
 Usage:
   python inference_cadevolve.py \
@@ -15,9 +14,9 @@ Usage:
       --model_path ./work_dirs/cadevolve/final_model \
 """
 
-import os, sys, json, argparse, warnings
+import json, argparse, warnings
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 import numpy as np
 
 warnings.filterwarnings("ignore")
@@ -83,16 +82,6 @@ def extract_assistant_text(decoded: str) -> str:
     return decoded.strip()
 
 
-def wrap_dsl(pred_body: str) -> str:
-    """
-    Rebuild a runnable .py from the 'cleaned' DSL body used during training.
-    Adjust to your project needs.
-    """
-    header = "from api.dsl_api import *\n\n"
-    footer = "\n\nresult = n0.build()\n"
-    return header + pred_body.rstrip() + footer
-
-
 def main():
     parser = argparse.ArgumentParser(description="Inference for CADEvolve on STL renders")
     parser.add_argument("--stl_dir", type=Path, required=True, help="Folder with .stl files (recursively searched)")
@@ -106,8 +95,6 @@ def main():
     parser.add_argument("--top_k", type=int, default=50)
     parser.add_argument("--num_beams", type=int, default=1)
     parser.add_argument("--repetition_penalty", type=float, default=1.0)
-    parser.add_argument("--apply_augs", action="store_true", help="Use Plotter augmentations (default: off for eval)")
-    parser.add_argument("--wrap_runnable", action="store_true", help="Wrap predicted body into runnable DSL .py")
     parser.add_argument("--save_jsonl", action="store_true", help="Also save a preds.jsonl manifest")
     parser.add_argument("--device", type=str, default=None, help="cuda|cpu (auto if not set)")
     parser.add_argument("--resized_width", type=int, default=14 * 17 * 2)
@@ -182,12 +169,8 @@ def main():
 
                 stl_path = batch_paths[i]
                 stem = stl_path.stem
-                if args.wrap_runnable:
-                    text_to_save = wrap_dsl(pred_body)
-                    out_ext = ".dsl.py"
-                else:
-                    text_to_save = pred_body
-                    out_ext = ".txt"
+                text_to_save = pred_body
+                out_ext = ".txt"
 
                 rel_dir = stl_path.parent.relative_to(args.stl_dir) if stl_path.parent != args.stl_dir else Path(".")
                 save_dir = args.out_dir / rel_dir
@@ -198,7 +181,6 @@ def main():
                 manifest.append({
                     "stl": str(stl_path),
                     "pred_path": str(out_path),
-                    "wrapped": bool(args.wrap_runnable),
                     "tokens": int(out_ids.shape[-1]),
                 })
 
@@ -208,7 +190,7 @@ def main():
 
     for stl in stls:
         try:
-            img = plotter.get_img(stl, None, apply_augs=args.apply_augs)
+            img = plotter.get_img(stl, None)
             save_img_any(img, (args.out_dir / "renders" / stl.parent.relative_to(args.stl_dir) / f"{stl.stem}.png"))
             batch_imgs.append(img)
             batch_paths.append(stl)
