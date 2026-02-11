@@ -2,6 +2,9 @@
 
 **CADEvolve** is an evolution-based pipeline, dataset, and training codebase for generating **industrial-grade, valid CAD programs** and fine-tuning **vision–language models (VLMs)** for **Image2CAD**.
 
+
+
+
 ---
 
 ## Repository layout
@@ -24,6 +27,19 @@ CADEvolve/
 
 > This README gives the top-level entry points. Each folder contains self-contained scripts.  
 > `dataset_utils/` includes its own README with the exact post-processing/augmentation pipeline.
+
+
+### 0) Installation
+
+```bash
+
+python3.10 -m venv .venv
+source .venv/bin/activate
+
+pip install -U pip setuptools wheel
+pip install -r requirements.txt
+```
+
 
 ### 1) Evolve complex generators (≈8k parts)
 

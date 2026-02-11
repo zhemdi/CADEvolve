@@ -1,0 +1,44 @@
+# core
+numpy==2.2.6
+scipy==1.13.1
+tqdm==4.67.1
+PyYAML==6.0.2
+pillow==10.4.0
+matplotlib
+pandas
+jupyterlab
+ipykernel
+nbformat
+trimesh
+rtree
+cma
+opencv-python-headless==4.12.0.88
+
+# cad stack (pip availability may vary)
+cadquery==2.5.2
+ocp==7.7.2
+
+# viz
+vtk==9.5.2
+pyvista==0.46.3
+
+# hf / llm
+huggingface-hub==0.34.4
+safetensors==0.6.2
+tokenizers==0.21.4
+datasets==4.0.0
+trl==0.21.0
+sentencepiece==0.2.1
+qwen-vl-utils
+openai>=1.40.0
+
+# torch stack (linux/cuda-specific in practice)
+torch==2.7.1
+torchvision==0.22.1
+torchaudio==2.7.1
+triton==3.3.1
+xformers==0.0.31
+
+transformers @ git+https://github.com/huggingface/transformers@41980ce93e775f6c88500c51c8db7946fc6a2add
+accelerate @ git+https://github.com/huggingface/accelerate.git@23cf4ef8a3b58f016f63eeb158b4aa2c3e79fe6f
+flash_attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.2/flash_attn-2.8.2+cu12torch2.7cxx11abiTRUE-cp310-cp310-linux_x86_64.whl#sha256=7365feb5c5d54aa3838ea02f5fc52c51e496ec0db05e49907d6f1c152ad4e352
