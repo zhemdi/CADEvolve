@@ -6,6 +6,7 @@
 **Dataset:** https://huggingface.co/datasets/kulibinai/cadevolve  
 **Model:** https://huggingface.co/kulibinai/cadevolve-rl1
 
+<img width="786" height="460" alt="Screenshot 2026-02-19 at 13 46 25" src="https://github.com/user-attachments/assets/1fa20110-51b6-400d-906c-81ff482e5347" />
 
 
 
@@ -84,6 +85,9 @@ All training utilities live in `train/`.
 - **Evolution-generated CAD**: ≈8k complex, valid parts as executable CadQuery parametric generators.
 - **Unified large-scale dataset**: ≈1.3M CadQuery scripts paired with multi-view renders, covering the full CadQuery operation set.
 - **Training code**: SFT + inference + evaluation for Image2CAD VLMs, including rendering utilities for consistent multi-view inputs.
+
+<img width="1557" height="329" alt="Screenshot 2026-02-19 at 13 47 39" src="https://github.com/user-attachments/assets/793d13af-3256-4834-b833-2f44fe8c13ea" />
+<img width="1450" height="528" alt="Screenshot 2026-02-19 at 13 48 27" src="https://github.com/user-attachments/assets/917bcbe0-e03e-45f1-834b-7dde4ae4cab9" />
 
 
 ## Links
