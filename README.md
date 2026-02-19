@@ -1,6 +1,10 @@
-# CADEvolve
+# CADEvolve: Creating Realistic CAD via Program Evolution
 
 **CADEvolve** is an evolution-based pipeline, dataset, and training codebase for generating **industrial-grade, valid CAD programs** and fine-tuning **vision–language models (VLMs)** for **Image2CAD**.
+
+**Paper:** https://arxiv.org/abs/2602.16317  
+**Dataset:** https://huggingface.co/datasets/kulibinai/cadevolve  
+**Model:** https://huggingface.co/kulibinai/cadevolve-rl1
 
 
 
@@ -33,10 +37,6 @@ CADEvolve/
 
 ```bash
 
-python3.10 -m venv .venv
-source .venv/bin/activate
-
-pip install -U pip setuptools wheel
 pip install -r requirements.txt
 ```
 
@@ -90,3 +90,14 @@ All training utilities live in `train/`.
 
 - Dataset: [CADEvolve Hugging Face dataset](https://huggingface.co/datasets/kulibinai/cadevolve)
 - Model: [CADEvolve Hugging Face model](https://huggingface.co/kulibinai/cadevolve-rl1)
+
+
+Citation
+```bibtex
+@article{elistratov2026cadevolve,
+  title={CADEvolve: Creating Realistic CAD via Program Evolution},
+  author={Elistratov, Maksim and Barannikov, Marina and Ivanov, Gregory and Khrulkov, Valentin and Konushin, Anton and Kuznetsov, Andrey and Zhemchuzhnikov, Dmitrii},
+  journal={arXiv preprint arXiv:2602.16317},
+  year={2026}
+}
+```
