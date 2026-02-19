@@ -4,8 +4,6 @@ import pyvista as pv
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
-# from augs import shift_aug, add_or_delete_part_aug, remove_through_hole_aug, make_flat_aug, add_through_hole_aug, \
-#     add_fillet_or_protrusion_aug
 
 
 class Plotter:

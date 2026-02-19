@@ -4,9 +4,6 @@ import pyvista as pv
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import sys
-sys.path.append('/workspace-SR008.fs2/users/kabisov/Projects/cad-refine')
-from augs import shift_aug, add_or_delete_part_aug, remove_through_hole_aug, make_flat_aug, add_through_hole_aug, \
-    add_fillet_or_protrusion_aug
 
 
 class Plotter:
@@ -94,13 +91,7 @@ class Plotter:
 
         self.remove_meshes(mesh_actor)
 
-        if apply_augs:
-            try:
-                view_images = self.apply_augs(
-                    {view_name: view_image for view_name, view_image in zip(self.views, view_images)}
-                )
-            except Exception as ex:
-                print("Exception in augs:", ex)
+        
 
         mesh_actor = self.iso_plotter.add_mesh(mesh, reset_camera=False, color=color)
         mesh_actor.use_bounds = False
@@ -223,31 +214,7 @@ class Plotter:
         for view_name in view_to_image:
             view_to_image[view_name] = np.array(view_to_image[view_name])[..., 1]
 
-        aug_to_p = {
-            "add_or_delete_part": 15,
-            "add_fillet_or_protrusion": 15,
-            "make_flat": 15,
-            "remove_through_hole": 25,
-            "add_through_hole": 20,
-            "shift": 10,
-        }
-        selected_aug = random.sample(list(aug_to_p), counts=list(aug_to_p.values()), k=1)[0]
-
-        if selected_aug == "add_or_delete_part":
-            axis_pairs = random.sample([["-Z", "+Z"], ["+Y", "-Y"], ["+X", "-X"]], k=1)
-            for axis_pair in axis_pairs:
-                random.shuffle(axis_pair)
-                add_or_delete_part_aug((view_to_image[axis_pair[0]], view_to_image[axis_pair[1]]))
-        elif selected_aug == "shift":
-            shift_aug(view_to_image)
-        elif selected_aug == "remove_through_hole":
-            remove_through_hole_aug(view_to_image)
-        elif selected_aug == "make_flat":
-            make_flat_aug(view_to_image)
-        elif selected_aug == "add_through_hole":
-            add_through_hole_aug(view_to_image)
-        elif selected_aug == "add_fillet_or_protrusion":
-            add_fillet_or_protrusion_aug(view_to_image)
+        
 
         augmented_images = []
         for view_name in self.views:
